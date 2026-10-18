@@ -33,6 +33,48 @@ mvn install
 The build produces the same artifacts as the .NET solution: the library, the demo, the integration
 tests, and a regenerated binder.
 
+## Distribution packages
+
+`mvn package` also writes one archive per platform to `dist/` (git-ignored):
+
+| Archive | Contents |
+| --- | --- |
+| `pdfiumcore-<version>-win-x64.zip` | `lib/pdfium.dll`, `include/`, `VERSION`, `PDFIUM-LICENSE`, `README.md`, `LICENSE` |
+| `pdfiumcore-<version>-win-arm64.zip` | `lib/pdfium.dll`, ... |
+| `pdfiumcore-<version>-linux-x64.zip` | `lib/libpdfium.so`, ... |
+| `pdfiumcore-<version>-linux-arm64.zip` | `lib/libpdfium.so`, ... |
+| `pdfiumcore-<version>-macos-x64.zip` | `lib/libpdfium.dylib`, ... |
+| `pdfiumcore-<version>-macos-arm64.zip` | `lib/libpdfium.dylib`, ... |
+| `pdfiumcore-<version>-all.zip` | every platform under `lib/<platform>/`, plus headers and licenses |
+
+Each archive unpacks into `pdfium-<pdfium.version>-<platform>/`, so two versions can be installed
+side by side. The descriptors live in `pdfiumcore/src/assembly/`; to add a platform, drop the
+library into `pdfiumcore/src/main/resources/pdfium/native/<platform>/`, add a matching descriptor
+and one `<execution>` in `pdfiumcore/pom.xml`.
+
+## Branching model
+
+The repository follows [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/)
+(`git flow init`, AVH edition):
+
+| Branch | Purpose |
+| --- | --- |
+| `main` | Released history only; every commit is a release, tagged `v<version>`. |
+| `develop` | Integration branch; the default working branch. |
+| `feature/*` | One topic per branch, merged back into `develop`. |
+| `release/*` | Stabilisation before a release; merges into `main` and back into `develop`. |
+| `hotfix/*` | Urgent fixes branched from `main`, merged into both `main` and `develop`. |
+
+```bash
+git flow feature start my-change
+# ... work, commit ...
+git flow feature finish my-change
+
+git flow release start 1.0.0
+# ... bump versions, final checks ...
+git flow release finish -m "PDFiumCore 1.0.0" 1.0.0
+```
+
 ## Usage
 
 The bindings mirror the C API one-to-one: every `FPDF_EXPORT` function becomes a static method on a
