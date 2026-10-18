@@ -11,6 +11,9 @@ provides the same bindings for .NET.
 
 - JDK 22 or newer (the bindings use `java.lang.foreign`)
 - Maven 3.9+
+- On JDK 24+ start the JVM with `--enable-native-access=ALL-UNNAMED`; the bindings call restricted
+  methods (`MemorySegment.reinterpret`, `SymbolLookup.libraryLookup`). The Maven build passes it to
+  the tests already, and the demo documents it below.
 - A native PDFium library. Binaries for win-x64, win-arm64, linux-x64, linux-arm64,
   macos-x64 and macos-arm64 are bundled; see [Native libraries](#native-libraries).
 
@@ -120,7 +123,8 @@ Run the demo, which renders the bundled sample document:
 
 ```bash
 cd pdfiumcore-demo
-mvn exec:java -Dexec.args="src/main/resources/pdf-sample.pdf output.png"
+MAVEN_OPTS="--enable-native-access=ALL-UNNAMED" \
+  mvn exec:java -Dexec.args="src/main/resources/pdf-sample.pdf output.png"
 ```
 
 ### Structs and strings

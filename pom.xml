@@ -70,7 +70,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.5.2</version>
           <configuration>
-            <argLine>-Djava.library.path=${project.basedir}</argLine>
+            <argLine>--enable-native-access=ALL-UNNAMED -Djava.library.path=${project.basedir}</argLine>
           </configuration>
         </plugin>
         <plugin>
