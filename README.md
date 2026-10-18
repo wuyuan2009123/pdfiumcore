@@ -55,6 +55,30 @@ side by side. The descriptors live in `pdfiumcore/src/assembly/`; to add a platf
 library into `pdfiumcore/src/main/resources/pdfium/native/<platform>/`, add a matching descriptor
 and one `<execution>` in `pdfiumcore/pom.xml`.
 
+### Platform jars
+
+`mvn package` produces a single jar holding every platform (~22 MB). `-Pplatform-jars` additionally
+attaches one jar per platform, each with the classes, the headers and only its own native library
+(~4 MB), using the platform as the classifier:
+
+```bash
+mvn -Pplatform-jars package
+# pdfiumcore/target/pdfiumcore-<version>-win-x64.jar
+# ...-win-arm64.jar  ...-linux-x64.jar  ...-linux-arm64.jar
+# ...-macos-x64.jar  ...-macos-arm64.jar
+```
+
+```xml
+<dependency>
+    <groupId>io.github.pdfiumcore</groupId>
+    <artifactId>pdfiumcore</artifactId>
+    <version>1.0.1</version>
+    <classifier>win-x64</classifier>
+</dependency>
+```
+
+The descriptors live next to the zip ones, in `pdfiumcore/src/assembly/jar-<platform>.xml`.
+
 ## Branching model
 
 The repository follows [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/)
@@ -76,7 +100,20 @@ git flow feature finish my-change
 git flow release start 1.0.0
 # ... bump versions, final checks ...
 git flow release finish -m "PDFiumCore 1.0.0" 1.0.0
+git push origin main develop --follow-tags
 ```
+
+Pushing a `release/*` or `hotfix/*` branch, or the `v<version>` tag that `release finish` creates,
+runs `.github/workflows/release.yml`, which packages and publishes the platform jars:
+
+| Push | What happens |
+| --- | --- |
+| `release/*`, `hotfix/*` | build + tests on linux-x64 / win-x64 / macos-arm64, plus jars and archives for every platform, uploaded as workflow artifacts |
+| `v*` tag | the same artifacts are attached to the GitHub release for that tag |
+| `workflow_dispatch` | build only, nothing is published |
+
+The jars are attached to the release with `gh release create` (or `upload` if the release already
+exists), so a failed upload can be retried by re-running the workflow on the tag.
 
 ## Usage
 
@@ -178,6 +215,9 @@ that the file magic matches its type.
 - `.github/workflows/build.yml` runs `mvn -B verify` on `ubuntu-latest`, `windows-latest` and
   `macos-14` (arm64) with JDK 22, so each bundled platform is exercised against its own native
   library.
+- `.github/workflows/release.yml` runs `mvn -B -Pplatform-jars verify` on the same three runners
+  whenever a `release/*` or `hotfix/*` branch moves, publishes the jars and the `dist/` archives as
+  artifacts, and attaches them to the GitHub release when the `v*` tag is pushed.
 - `.github/workflows/check-pdfium-update.yml` compares `native/VERSION` with the latest
   [pdfium-binaries](https://github.com/bblanchon/pdfium-binaries) release every Monday and opens an
   issue when they diverge.

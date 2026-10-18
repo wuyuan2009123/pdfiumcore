@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.1.1"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.1 https://maven.apache.org/xsd/assembly-2.1.1.xsd">
+  <!-- PDFiumCore jar for Linux arm64: the classes plus only the linux-arm64 native library. -->
+  <id>linux-arm64</id>
+  <formats>
+    <format>jar</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <fileSets>
+    <fileSet>
+      <directory>${project.build.outputDirectory}</directory>
+      <outputDirectory>.</outputDirectory>
+      <excludes>
+        <exclude>pdfium/native/**</exclude>
+      </excludes>
+    </fileSet>
+    <fileSet>
+      <directory>${project.build.outputDirectory}/pdfium/native/linux-arm64</directory>
+      <outputDirectory>pdfium/native/linux-arm64</outputDirectory>
+    </fileSet>
+  </fileSets>
+</assembly>

@@ -132,4 +132,80 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!--
+      One jar per platform, e.g. pdfiumcore-<version>-win-x64.jar. Each jar holds the classes and
+      only the native library of that platform, so a consumer can depend on a single classifier
+      instead of the "all platforms" jar. Inactive by default: activate it with -Pplatform-jars,
+      which is what the release workflow does.
+    -->
+    <profile>
+      <id>platform-jars</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>jar-win-x64</id>
+                <phase>package</phase>
+                <goals><goal>single</goal></goals>
+                <configuration>
+                  <descriptors><descriptor>src/assembly/jar-win-x64.xml</descriptor></descriptors>
+                  <attach>true</attach>
+                </configuration>
+              </execution>
+              <execution>
+                <id>jar-win-arm64</id>
+                <phase>package</phase>
+                <goals><goal>single</goal></goals>
+                <configuration>
+                  <descriptors><descriptor>src/assembly/jar-win-arm64.xml</descriptor></descriptors>
+                  <attach>true</attach>
+                </configuration>
+              </execution>
+              <execution>
+                <id>jar-linux-x64</id>
+                <phase>package</phase>
+                <goals><goal>single</goal></goals>
+                <configuration>
+                  <descriptors><descriptor>src/assembly/jar-linux-x64.xml</descriptor></descriptors>
+                  <attach>true</attach>
+                </configuration>
+              </execution>
+              <execution>
+                <id>jar-linux-arm64</id>
+                <phase>package</phase>
+                <goals><goal>single</goal></goals>
+                <configuration>
+                  <descriptors><descriptor>src/assembly/jar-linux-arm64.xml</descriptor></descriptors>
+                  <attach>true</attach>
+                </configuration>
+              </execution>
+              <execution>
+                <id>jar-macos-x64</id>
+                <phase>package</phase>
+                <goals><goal>single</goal></goals>
+                <configuration>
+                  <descriptors><descriptor>src/assembly/jar-macos-x64.xml</descriptor></descriptors>
+                  <attach>true</attach>
+                </configuration>
+              </execution>
+              <execution>
+                <id>jar-macos-arm64</id>
+                <phase>package</phase>
+                <goals><goal>single</goal></goals>
+                <configuration>
+                  <descriptors><descriptor>src/assembly/jar-macos-arm64.xml</descriptor></descriptors>
+                  <attach>true</attach>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

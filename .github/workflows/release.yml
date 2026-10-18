@@ -1,0 +1,131 @@
+name: Release
+
+# Git Flow packaging.
+#
+#   git flow release start 1.1.0      -> push to release/1.1.0  -> one jar per platform is built
+#   git flow release finish 1.1.0     -> tag v1.1.0             -> the jars are published
+#   git flow hotfix  start 1.1.1      -> push to hotfix/1.1.1   -> same, from main
+#
+# `mvn -Pplatform-jars` attaches one jar per platform (classifier win-x64, win-arm64, linux-x64,
+# linux-arm64, macos-x64, macos-arm64) next to the "all platforms" jar, plus the dist/*.zip
+# archives. The three runners below also run the test suite against their own native library; the
+# remaining three platforms are only packaged, because no matching runner is available.
+
+on:
+  push:
+    branches:
+      - 'release/**'
+      - 'hotfix/**'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.classifier }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  classifier: linux-x64 }
+          - { os: windows-latest, classifier: win-x64 }
+          - { os: macos-14,       classifier: macos-arm64 }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 22
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '22'
+          cache: maven
+
+      - name: Build and test
+        run: mvn -B -ntp -Pplatform-jars verify
+
+      - name: Upload the platform jar and archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdfiumcore-${{ matrix.classifier }}
+          path: |
+            pdfiumcore/target/pdfiumcore-*-${{ matrix.classifier }}.jar
+            dist/pdfiumcore-*-${{ matrix.classifier }}.zip
+          if-no-files-found: error
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ matrix.classifier }}
+          path: '**/target/surefire-reports/*'
+          if-no-files-found: ignore
+
+  package-remaining:
+    name: linux-arm64, win-arm64, macos-x64
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 22
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '22'
+          cache: maven
+
+      - name: Package the platforms without a runner
+        run: mvn -B -ntp -Pplatform-jars -DskipTests package
+
+      - name: Upload the remaining jars and the all-platforms archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdfiumcore-remaining
+          path: |
+            pdfiumcore/target/pdfiumcore-*-linux-arm64.jar
+            pdfiumcore/target/pdfiumcore-*-win-arm64.jar
+            pdfiumcore/target/pdfiumcore-*-macos-x64.jar
+            dist/pdfiumcore-*-linux-arm64.zip
+            dist/pdfiumcore-*-win-arm64.zip
+            dist/pdfiumcore-*-macos-x64.zip
+            dist/pdfiumcore-*-all.zip
+          if-no-files-found: error
+
+  release:
+    name: GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ build, package-remaining ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pdfiumcore-*
+          merge-multiple: true
+          path: release-assets
+
+      - name: List the assets
+        run: ls -l release-assets
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber release-assets/*
+          else
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+              --title "$GITHUB_REF_NAME" --generate-notes release-assets/*
+          fi

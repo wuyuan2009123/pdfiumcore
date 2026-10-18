@@ -1,7 +1,6 @@
 target/
 build/
 out/
-dist/
 *.class
 *.jar
 !pdfiumcore/src/main/resources/pdfium/native/**/*.dll
