@@ -174,6 +174,47 @@ MAVEN_OPTS="--enable-native-access=ALL-UNNAMED" \
   decode them.
 - NULL handles are represented by `MemorySegment.NULL`; test them with `segment.address() == 0`.
 
+## Concurrency
+
+The bindings themselves are thread safe: each generated function resolves one `static final`
+`MethodHandle` when its holder class is initialised, `PdfiumRuntime` holds no state, and
+`PdfiumLibrary` loads the native library once behind a double-checked lock. PDFium itself needs
+more discipline, so a caller has to follow these rules:
+
+1. **`FPDF_InitLibrary` / `FPDF_DestroyLibrary` are process-wide.** Call them once, not per
+   document or per request, and never while another thread is inside PDFium. In a server this means
+   initialising on startup and destroying only once every rendering task has finished.
+2. **A document handle must be used by one thread at a time.** `FPDF_LoadPage`,
+   `FPDF_RenderPageBitmap*`, `FPDF_ClosePage` and `FPDF_CloseDocument` on the same document are not
+   synchronised internally. The simplest safe pattern is to load, render and close within one
+   request and never share the handle; if a document is cached for reuse, guard it with its own
+   lock or a single-threaded executor.
+3. **Different documents can be rendered in parallel**, which is what Chromium does. Bound the
+   parallelism anyway: rendering is CPU bound and allocates off-heap memory.
+4. **`FPDF_GetLastError` returns the last error of the process**, not of the calling thread. Use it
+   for diagnostics only, never to branch on.
+5. **Structs are confined to their thread.** `FS_MATRIX` and the other structs allocate through
+   `Arena.ofConfined()`, so handing one to another thread throws `WrongThreadException`. Create and
+   use them in the same task, and keep the buffer passed to `FPDF_LoadMemDocument64` alive until
+   the document is closed.
+6. **Everything is off-heap.** Destroy bitmaps and close pages and documents in a `finally` block; a
+   leaked handle is not reclaimed by the garbage collector and shows up as process memory growth.
+
+A server arrangement that follows the rules above:
+
+| Concern | Arrangement |
+| --- | --- |
+| Startup | `FPDF_InitLibrary()` once, plus one throwaway render to trigger PDFium's lazy initialisation |
+| Shutdown | stop accepting work, let the pool drain, then `FPDF_DestroyLibrary()` |
+| Execution | a bounded pool of platform threads; virtual threads pin the carrier during downcalls and add nothing here |
+| Per request | load → render → close in a `finally`, or a per-document lock when documents are cached |
+| Backpressure | a bounded queue whose rejection policy answers 503 instead of queueing without limit |
+
+The .NET project this is a port of takes the same position: `PDFiumCore.cs` is pure P/Invoke with
+no locking at all, and its tests initialise the library in `[OneTimeSetUp]` and tear it down in
+`[OneTimeTearDown]`. Whatever synchronisation a server needs has to be added on top of the
+bindings.
+
 ## Native libraries
 
 `PdfiumLibrary` looks for the native library in this order:
