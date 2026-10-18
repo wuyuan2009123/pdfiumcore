@@ -52,6 +52,11 @@ jobs:
       - name: Build and test
         run: mvn -B -ntp -Pplatform-jars verify
 
+      # dist/ is written by the assembly plugin during the package phase, so it is already there.
+      - name: List the packaged artifacts
+        shell: bash
+        run: ls -l pdfiumcore/target/*.jar dist/*.zip
+
       - name: Upload the platform jar and archive
         uses: actions/upload-artifact@v4
         with:
@@ -85,6 +90,9 @@ jobs:
 
       - name: Package the platforms without a runner
         run: mvn -B -ntp -Pplatform-jars -DskipTests package
+
+      - name: List the packaged artifacts
+        run: ls -l pdfiumcore/target/*.jar dist/*.zip
 
       - name: Upload the remaining jars and the all-platforms archive
         uses: actions/upload-artifact@v4
