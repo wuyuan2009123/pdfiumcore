@@ -123,8 +123,14 @@ jobs:
           merge-multiple: true
           path: release-assets
 
-      - name: List the assets
-        run: ls -l release-assets
+      # The artifacts keep their directory layout (dist/, pdfiumcore/target/), but gh release
+      # only accepts files, so flatten them into assets/ first.
+      - name: Flatten the assets
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          find release-assets -type f \( -name '*.jar' -o -name '*.zip' \) -exec mv -f {} assets/ \;
+          ls -l assets
 
       - name: Publish the release
         env:
@@ -132,8 +138,8 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber release-assets/*
+            gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber assets/*
           else
             gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
-              --title "$GITHUB_REF_NAME" --generate-notes release-assets/*
+              --title "$GITHUB_REF_NAME" --generate-notes assets/*
           fi
