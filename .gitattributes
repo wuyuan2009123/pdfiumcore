@@ -1,0 +1,20 @@
+# Keep sources LF everywhere so the build is reproducible across platforms.
+* text=auto eol=lf
+
+# Windows scripts keep CRLF so they run under cmd.exe.
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+
+# Native binaries and documents are never converted.
+*.dll binary
+*.so binary
+*.dylib binary
+*.lib binary
+*.exp binary
+*.exe binary
+*.pdf binary
+*.jar binary
+*.zip binary
+*.tgz binary
+*.png binary

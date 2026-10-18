@@ -1,0 +1,80 @@
+name: Check PDFium updates
+
+on:
+  schedule:
+    # Every Monday at 06:00 UTC.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the pinned PDFium version
+        id: current
+        run: |
+          build=$(grep -E '^BUILD=' native/VERSION | cut -d= -f2)
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+
+      - name: Read the latest pdfium-binaries release
+        id: latest
+        run: |
+          json=$(curl -fsSL https://api.github.com/repos/bblanchon/pdfium-binaries/releases/latest)
+          tag=$(echo "$json" | jq -r '.tag_name')
+          # Tags look like "chromium/8100".
+          build=${tag##*/}
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the tracking issue
+        if: steps.current.outputs.build != steps.latest.outputs.build
+        uses: actions/github-script@v7
+        env:
+          CURRENT_BUILD: ${{ steps.current.outputs.build }}
+          LATEST_BUILD: ${{ steps.latest.outputs.build }}
+          LATEST_TAG: ${{ steps.latest.outputs.tag }}
+        with:
+          script: |
+            const title = `PDFium update available: ${process.env.LATEST_TAG}`;
+            const body = [
+              `The pinned PDFium build is \`${process.env.CURRENT_BUILD}\`,`,
+              `but [pdfium-binaries](https://github.com/bblanchon/pdfium-binaries/releases/tag/${process.env.LATEST_TAG})`,
+              `now ships \`${process.env.LATEST_BUILD}\`.`,
+              '',
+              'To update:',
+              '1. Download the new assets for every platform into `native/`.',
+              '2. Refresh `native/include/`, `native/VERSION` and the bundled native libraries.',
+              '3. Regenerate the bindings:',
+              '   ```bash',
+              '   cd pdfiumcore-bindings-generator',
+              '   mvn exec:java -Dexec.args="--headers ../native/include --output ../pdfiumcore/src/main/java"',
+              '   ```',
+              '4. Run `mvn -B verify`.',
+            ].join('\n');
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'pdfium-update',
+            });
+
+            const match = existing.data.find((issue) => issue.title === title);
+            if (match) {
+              core.info(`Issue already open: #${match.number}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['pdfium-update'],
+              });
+              core.info(`Opened issue #${created.data.number}`);
+            }

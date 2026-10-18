@@ -1,0 +1,22 @@
+target/
+build/
+out/
+dist/
+*.class
+*.jar
+!pdfiumcore/src/main/resources/pdfium/native/**/*.dll
+*.log
+
+# Tool state
+.reasonix/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# Demo output
+output.png
