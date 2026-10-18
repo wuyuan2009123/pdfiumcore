@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.1.1"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.1 https://maven.apache.org/xsd/assembly-2.1.1.xsd">
+  <!-- Every bundled platform in a single archive: native libraries, headers, version and licenses. -->
+  <id>all</id>
+  <formats>
+    <format>zip</format>
+  </formats>
+  <includeBaseDirectory>true</includeBaseDirectory>
+  <baseDirectory>pdfium-${pdfium.version}-all</baseDirectory>
+  <fileSets>
+    <fileSet>
+      <directory>src/main/resources/pdfium/native</directory>
+      <outputDirectory>lib</outputDirectory>
+    </fileSet>
+    <fileSet>
+      <directory>${project.basedir}/../native/include</directory>
+      <outputDirectory>include</outputDirectory>
+    </fileSet>
+    <fileSet>
+      <directory>${project.basedir}/../native</directory>
+      <outputDirectory>.</outputDirectory>
+      <includes>
+        <include>VERSION</include>
+        <include>PDFIUM-LICENSE</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>${project.basedir}/..</directory>
+      <outputDirectory>.</outputDirectory>
+      <includes>
+        <include>README.md</include>
+        <include>LICENSE</include>
+      </includes>
+    </fileSet>
+  </fileSets>
+</assembly>
