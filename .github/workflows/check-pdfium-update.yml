@@ -27,7 +27,7 @@ jobs:
         run: |
           json=$(curl -fsSL https://api.github.com/repos/bblanchon/pdfium-binaries/releases/latest)
           tag=$(echo "$json" | jq -r '.tag_name')
-          # Tags look like "chromium/8100".
+          # Tags look like "chromium/8138".
           build=${tag##*/}
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "build=$build" >> "$GITHUB_OUTPUT"

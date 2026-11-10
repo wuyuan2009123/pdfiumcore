@@ -68,7 +68,7 @@ public final class PdfiumLibrary {
     }
 
     /**
-     * Returns the version of the bundled PDFium build (for example {@code 157.0.8100.0}), or
+     * Returns the version of the bundled PDFium build (for example {@code 159.0.8138.0}), or
      * {@code null} when the version file is not on the classpath.
      */
     public static String bundledVersion() {

@@ -55,6 +55,6 @@ class NativeResourcesTest {
 
     @Test
     void reportsTheBundledVersion() {
-        assertEquals("157.0.8100.0", PdfiumLibrary.bundledVersion());
+        assertEquals("159.0.8138.0", PdfiumLibrary.bundledVersion());
     }
 }

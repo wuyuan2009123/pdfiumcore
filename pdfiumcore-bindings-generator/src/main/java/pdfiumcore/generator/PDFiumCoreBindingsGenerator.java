@@ -96,7 +96,7 @@ public final class PDFiumCoreBindingsGenerator {
                 // fall through to the default below
             }
         }
-        return "157.0.8100.0";
+        return "159.0.8138.0";
     }
 
     private static String match(String text, String key) {
