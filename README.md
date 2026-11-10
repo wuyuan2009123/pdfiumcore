@@ -254,7 +254,7 @@ that the file magic matches its type.
 ## Continuous integration
 
 - `.github/workflows/build.yml` runs `mvn -B verify` on `ubuntu-latest`, `windows-latest` and
-  `macos-14` (arm64) with JDK 22, so each bundled platform is exercised against its own native
+  `macos-15` (arm64) with JDK 22, so each bundled platform is exercised against its own native
   library.
 - `.github/workflows/release.yml` runs `mvn -B -Pplatform-jars verify` on the same three runners
   whenever a `release/*` or `hotfix/*` branch moves, publishes the jars and the `dist/` archives as
